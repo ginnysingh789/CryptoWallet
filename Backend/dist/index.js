@@ -41,6 +41,7 @@ const bip39 = __importStar(require("bip39"));
 const ed25519_hd_key_1 = require("ed25519-hd-key");
 const web3_js_1 = require("@solana/web3.js");
 const bs58_1 = __importDefault(require("bs58"));
+const ethers = __importStar(require("ethers"));
 const app = (0, express_1.default)();
 const port = 3000;
 //First Generate Mneomic 
@@ -48,11 +49,10 @@ let genreatedMnemomic;
 let solanaCount = 0;
 let etherumCount = 0;
 genreatedMnemomic = bip39.generateMnemonic();
-console.log(genreatedMnemomic);
 app.get('/generatedSolana', (req, res) => {
     if (!genreatedMnemomic) {
         res.status(401).json({
-            msg: "Error in generating  mnemoic"
+            msg: "Error in generating  mnemonic"
         });
     }
     const seed = bip39.mnemonicToSeedSync(genreatedMnemomic);
@@ -60,10 +60,38 @@ app.get('/generatedSolana', (req, res) => {
     const derivedKey = (0, ed25519_hd_key_1.derivePath)(path, seed.toString('hex')).key;
     const sol = web3_js_1.Keypair.fromSeed(derivedKey);
     res.status(200).json({
-        "Public-Key": sol.publicKey,
-        "Private-Key": bs58_1.default.encode(sol.secretKey)
+        "Sol_Public_Key": sol.publicKey,
+        "Sol_Private_Key": bs58_1.default.encode(sol.secretKey),
+        "Account_Index": solanaCount,
+        "DerivationPath": path
     });
     solanaCount++;
+});
+//In Etherum Public key is not equal to the address by using this your public key is not exposed until you made transaction
+app.get('/generateEtherum', (req, res) => {
+    if (!genreatedMnemomic) {
+        res.status(401).json({
+            msg: "Error in mnemoic"
+        });
+    }
+    try {
+        const seed = ethers.Mnemonic.fromPhrase(genreatedMnemomic);
+        console.log(seed);
+        const path = `m/44'/60'/${etherumCount}'/0'`;
+        const eth = ethers.HDNodeWallet.fromMnemonic(seed, path);
+        console.log(eth);
+        res.status(200).json({
+            "Eth_Public_key": eth.publicKey,
+            "Eth_Private_key": eth.privateKey,
+            "Address": eth.address,
+            "Account_Index": etherumCount,
+            "DerivationPath": path
+        });
+        etherumCount++;
+    }
+    catch (error) {
+        console.log(error);
+    }
 });
 app.get('/health', (req, res) => {
     res.send('Healty');
