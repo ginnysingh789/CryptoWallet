@@ -40,25 +40,28 @@ const express_1 = __importDefault(require("express"));
 const bip39 = __importStar(require("bip39"));
 const ed25519_hd_key_1 = require("ed25519-hd-key");
 const web3_js_1 = require("@solana/web3.js");
+const bs58_1 = __importDefault(require("bs58"));
 const app = (0, express_1.default)();
 const port = 3000;
 //First Generate Mneomic 
 let genreatedMnemomic;
 let solanaCount = 0;
 let etherumCount = 0;
-app.get('/', (req, res) => {
-    genreatedMnemomic = bip39.generateMnemonic();
-    console.log(genreatedMnemomic);
-    res.status(200).send("Generated");
-});
+genreatedMnemomic = bip39.generateMnemonic();
+console.log(genreatedMnemomic);
 app.get('/generatedSolana', (req, res) => {
+    if (!genreatedMnemomic) {
+        res.status(401).json({
+            msg: "Error in generating  mnemoic"
+        });
+    }
     const seed = bip39.mnemonicToSeedSync(genreatedMnemomic);
-    const path = "m/44'/501'/0'/0'";
+    const path = `m/44'/501'/${solanaCount}'/0'`;
     const derivedKey = (0, ed25519_hd_key_1.derivePath)(path, seed.toString('hex')).key;
     const sol = web3_js_1.Keypair.fromSeed(derivedKey);
     res.status(200).json({
         "Public-Key": sol.publicKey,
-        "Private-Key": sol.secretKey.toString()
+        "Private-Key": bs58_1.default.encode(sol.secretKey)
     });
     solanaCount++;
 });
