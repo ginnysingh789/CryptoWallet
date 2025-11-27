@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Wallet, Key, Copy, Check } from 'lucide-react'
+import { Wallet, Key, Copy, Check, Upload } from 'lucide-react'
 
 interface Keypair {
   publicKey: string
@@ -14,6 +14,8 @@ function App() {
   const [keypairs, setKeypairs] = useState<Keypair[]>([])
   const [copiedField, setCopiedField] = useState<string>('')
   const [loading, setLoading] = useState(false)
+  const [importMnemonic, setImportMnemonic] = useState<string>('')
+  const [showImport, setShowImport] = useState(false)
 
   const API_BASE = 'http://localhost:3000'
 
@@ -77,6 +79,43 @@ function App() {
     }
   }
 
+  const handleImportMnemonic = async () => {
+    if (!importMnemonic.trim()) {
+      alert('Please enter a mnemonic phrase')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch(`${API_BASE}/mnemonic`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_mnemomic: importMnemonic.trim()
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok) {
+        setMnemonic(importMnemonic.trim())
+        setKeypairs([]) // Clear existing wallets
+        setImportMnemonic('')
+        setShowImport(false)
+        alert('Mnemonic imported successfully!')
+      } else {
+        alert(data.msg || 'Invalid mnemonic phrase')
+      }
+    } catch (error) {
+      console.error('Error importing mnemonic:', error)
+      alert('Failed to import mnemonic')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const copyToClipboard = async (text: string, field: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -103,10 +142,63 @@ function App() {
 
         {/* Mnemonic Display */}
         <div className="mb-8 bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 border border-gray-700 shadow-xl">
-          <div className="flex items-center gap-2 mb-3">
-            <Key className="w-5 h-5 text-yellow-500" />
-            <h2 className="text-lg font-semibold text-gray-200">Secret Recovery Phrase</h2>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-yellow-500" />
+              <h2 className="text-lg font-semibold text-gray-200">Secret Recovery Phrase</h2>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => copyToClipboard(mnemonic, 'mnemonic')}
+                className="flex items-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm"
+                title="Copy mnemonic"
+              >
+                {copiedField === 'mnemonic' ? (
+                  <><Check className="w-4 h-4 text-green-500" /> Copied</>
+                ) : (
+                  <><Copy className="w-4 h-4" /> Copy</>
+                )}
+              </button>
+              <button
+                onClick={() => setShowImport(!showImport)}
+                className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-sm"
+              >
+                <Upload className="w-4 h-4" />
+                Import
+              </button>
+            </div>
           </div>
+          
+          {showImport ? (
+            <div className="mb-4">
+              <textarea
+                value={importMnemonic}
+                onChange={(e) => setImportMnemonic(e.target.value)}
+                placeholder="Enter your 12 or 24 word mnemonic phrase..."
+                className="w-full bg-black/50 rounded-lg p-4 border border-gray-700 text-gray-300 text-sm font-mono resize-none focus:outline-none focus:border-blue-500"
+                rows={3}
+              />
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={handleImportMnemonic}
+                  disabled={loading}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 rounded-lg text-sm font-semibold transition-colors"
+                >
+                  Import Mnemonic
+                </button>
+                <button
+                  onClick={() => {
+                    setShowImport(false)
+                    setImportMnemonic('')
+                  }}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : null}
+          
           <div className="bg-black/50 rounded-lg p-4 border border-gray-700">
             <p className="text-gray-300 text-sm leading-relaxed font-mono break-all">
               {mnemonic || 'Loading mnemonic...'}

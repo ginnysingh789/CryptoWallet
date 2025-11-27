@@ -45,12 +45,36 @@ const ethers = __importStar(require("ethers"));
 const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
+app.use(express_1.default.json());
 const port = 3000;
 //First Generate Mneomic 
 let genreatedMnemomic;
 let solanaCount = 0;
 let etherumCount = 0;
 genreatedMnemomic = bip39.generateMnemonic();
+//Generate Random Mnemonic 
+app.get('/mnemonic', (req, res) => {
+    res.status(200).json({
+        "mnemonic": genreatedMnemomic
+    });
+});
+//Import the Mnemomic
+app.post('/mnemonic', (req, res) => {
+    const user_mnemomic = req.body.user_mnemomic;
+    if (user_mnemomic && bip39.validateMnemonic(user_mnemomic)) {
+        genreatedMnemomic = user_mnemomic;
+        solanaCount = 0;
+        etherumCount = 0;
+        res.status(200).json({
+            msg: "Mnemoic set successfully"
+        });
+    }
+    else {
+        res.status(400).json({
+            msg: "Invalid Mnemoic"
+        });
+    }
+});
 app.get('/generatedSolana', (req, res) => {
     if (!genreatedMnemomic) {
         res.status(401).json({
@@ -73,7 +97,7 @@ app.get('/generatedSolana', (req, res) => {
 app.get('/generateEtherum', (req, res) => {
     if (!genreatedMnemomic) {
         res.status(401).json({
-            msg: "Error in mnemoic"
+            msg: "Error in mnemomic"
         });
     }
     const seed = ethers.Mnemonic.fromPhrase(genreatedMnemomic);
@@ -87,11 +111,6 @@ app.get('/generateEtherum', (req, res) => {
         "DerivationPath": path
     });
     etherumCount++;
-});
-app.get('/mnemonic', (req, res) => {
-    res.status(200).json({
-        "mnemonic": genreatedMnemomic
-    });
 });
 app.get('/health', (req, res) => {
     res.send('Healty');
