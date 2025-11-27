@@ -42,7 +42,9 @@ const ed25519_hd_key_1 = require("ed25519-hd-key");
 const web3_js_1 = require("@solana/web3.js");
 const bs58_1 = __importDefault(require("bs58"));
 const ethers = __importStar(require("ethers"));
+const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
+app.use((0, cors_1.default)());
 const port = 3000;
 //First Generate Mneomic 
 let genreatedMnemomic;
@@ -74,24 +76,22 @@ app.get('/generateEtherum', (req, res) => {
             msg: "Error in mnemoic"
         });
     }
-    try {
-        const seed = ethers.Mnemonic.fromPhrase(genreatedMnemomic);
-        console.log(seed);
-        const path = `m/44'/60'/${etherumCount}'/0'`;
-        const eth = ethers.HDNodeWallet.fromMnemonic(seed, path);
-        console.log(eth);
-        res.status(200).json({
-            "Eth_Public_key": eth.publicKey,
-            "Eth_Private_key": eth.privateKey,
-            "Address": eth.address,
-            "Account_Index": etherumCount,
-            "DerivationPath": path
-        });
-        etherumCount++;
-    }
-    catch (error) {
-        console.log(error);
-    }
+    const seed = ethers.Mnemonic.fromPhrase(genreatedMnemomic);
+    const path = `m/44'/60'/${etherumCount}'/0'`;
+    const eth = ethers.HDNodeWallet.fromMnemonic(seed, path);
+    res.status(200).json({
+        "Eth_Public_key": eth.publicKey,
+        "Eth_Private_key": eth.privateKey,
+        "Address": eth.address,
+        "Account_Index": etherumCount,
+        "DerivationPath": path
+    });
+    etherumCount++;
+});
+app.get('/mnemonic', (req, res) => {
+    res.status(200).json({
+        "mnemonic": genreatedMnemomic
+    });
 });
 app.get('/health', (req, res) => {
     res.send('Healty');
